@@ -764,6 +764,19 @@ use `memory_recall` + filesystem search to avoid patching the wrong repo.
 After modifying ANY `.ts` file under `plugins/`, MUST run `rm -rf /tmp/jiti/` BEFORE `openclaw gateway restart`.
 jiti caches compiled TS; restart alone loads STALE code. This has caused silent bugs multiple times.
 Config-only changes do NOT need cache clearing.
+
+## Rule 6 — The running plugin must match the published release
+
+Always treat the **npm release** (`win4r/memory-lancedb-pro`) as the single source of truth for runtime behavior.
+Do NOT assume any workspace copy (for example, `/home/ubuntu/clawd/plugins/memory-lancedb-pro`) is up to date.
+
+Before testing a PR or declaring a release “verified”, you MUST confirm:
+- `openclaw config get plugins.load.paths` includes `/home/ubuntu/.openclaw/extensions/memory-lancedb-pro` (or a deliberately linked PR checkout),
+  and does **not** include `/home/ubuntu/clawd/plugins/memory-lancedb-pro`.
+- `openclaw plugins info memory-lancedb-pro` shows `source` under `/home/ubuntu/.openclaw/extensions/...`.
+- `openclaw memory-pro version` matches the expected released version.
+
+If you see “duplicate plugin id detected”, fix your plugin load paths first; otherwise you may be testing the wrong code.
 ```
 
 ---
