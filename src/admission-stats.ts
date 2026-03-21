@@ -76,11 +76,17 @@ export async function readAdmissionRejectionAudits(
 ): Promise<AdmissionRejectionAuditEntry[]> {
   try {
     const raw = await readFile(filePath, "utf8");
-    return raw
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as AdmissionRejectionAuditEntry);
+    const entries: AdmissionRejectionAuditEntry[] = [];
+    for (const rawLine of raw.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      try {
+        entries.push(JSON.parse(line) as AdmissionRejectionAuditEntry);
+      } catch {
+        // Skip corrupt JSONL lines (truncated writes, disk errors, etc.)
+      }
+    }
+    return entries;
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
     if (err?.code === "ENOENT") {

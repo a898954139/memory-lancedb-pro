@@ -382,14 +382,20 @@ export class SmartExtractor {
   ): Promise<void> {
     // Profile always merges (skip dedup — admission control still applies)
     if (ALWAYS_MERGE_CATEGORIES.has(candidate.category)) {
-      await this.handleProfileMerge(
+      const profileResult = await this.handleProfileMerge(
         candidate,
         conversationText,
         sessionKey,
         targetScope,
         scopeFilter,
       );
-      stats.merged++;
+      if (profileResult === "rejected") {
+        stats.rejected = (stats.rejected ?? 0) + 1;
+      } else if (profileResult === "created") {
+        stats.created++;
+      } else {
+        stats.merged++;
+      }
       return;
     }
 
@@ -664,7 +670,7 @@ export class SmartExtractor {
     targetScope: string,
     scopeFilter?: string[],
     admissionAudit?: AdmissionAuditRecord,
-  ): Promise<void> {
+  ): Promise<"merged" | "created" | "rejected"> {
     // Find existing profile memory by category
     const embeddingText = `${candidate.abstract} ${candidate.content}`;
     const vector = await this.embedder.embed(embeddingText);
@@ -682,7 +688,7 @@ export class SmartExtractor {
           `memory-pro: smart-extractor: admission rejected profile [${candidate.abstract.slice(0, 60)}] — ${profileAdmission.audit.reason}`,
         );
         await this.recordRejectedAdmission(candidate, conversationText, sessionKey, targetScope, scopeFilter ?? [targetScope], profileAdmission.audit as AdmissionAuditRecord & { decision: "reject" });
-        return;
+        return "rejected";
       }
       admissionAudit = profileAdmission.audit;
     }
@@ -712,9 +718,11 @@ export class SmartExtractor {
         undefined,
         admissionAudit,
       );
+      return "merged";
     } else {
       // No existing profile — create new
       await this.storeCandidate(candidate, vector || [], sessionKey, targetScope, admissionAudit);
+      return "created";
     }
   }
 
