@@ -217,6 +217,14 @@ function resolveEnvVars(value: string): string {
   });
 }
 
+function resolveFirstApiKey(apiKey: string | string[]): string {
+  const key = Array.isArray(apiKey) ? apiKey[0] : apiKey;
+  if (!key) {
+    throw new Error("embedding.apiKey is empty");
+  }
+  return resolveEnvVars(key);
+}
+
 function resolveOptionalPathWithEnv(
   api: Pick<OpenClawPluginApi, "resolvePath">,
   value: string | undefined,
@@ -1717,7 +1725,7 @@ const memoryLanceDBProPlugin = {
           ? undefined
           : config.llm?.apiKey
             ? resolveEnvVars(config.llm.apiKey)
-            : resolveEnvVars(config.embedding.apiKey);
+            : resolveFirstApiKey(config.embedding.apiKey);
         const llmBaseURL = llmAuth === "oauth"
           ? (config.llm?.baseURL ? resolveEnvVars(config.llm.baseURL) : undefined)
           : config.llm?.baseURL
@@ -2093,7 +2101,7 @@ const memoryLanceDBProPlugin = {
               ? undefined
               : config.llm?.apiKey
                 ? resolveEnvVars(config.llm.apiKey)
-                : resolveEnvVars(config.embedding.apiKey);
+                : resolveFirstApiKey(config.embedding.apiKey);
             const llmBaseURL = llmAuth === "oauth"
               ? (config.llm?.baseURL ? resolveEnvVars(config.llm.baseURL) : undefined)
               : config.llm?.baseURL
